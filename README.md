@@ -36,7 +36,7 @@ Les tests ont été effectués sur les serveurs de l'UGA.
 
 ### Premier test
 
-Le premier test a été effectué avec **3 époques**. On remarque qu'à la fin de l'apprentissage, il y a un écart entre la perte d'entrainement et la perte d'évaluation ce qui peut être le signe d'un surapprentissage.
+Le premier test a été effectué avec **3 époques** et avant le nettoyage rassemblant plusieurs classes. On remarque qu'à la fin de l'apprentissage, il y a un écart entre la perte d'entrainement et la perte d'évaluation ce qui peut être le signe d'un surapprentissage.
 
 La **précision** est de **54,06%** ce qui voudrait dire que la classe est correctement attribuée environ une fois sur deux. Cependant le **F1** de **29%**, qui fait la moyenne des performances pour chaque classe, montre qu'en réalité les classes sont moins bien reconnues qu'une fois sur deux.
 
@@ -46,7 +46,7 @@ Etant donné qu'une classe est majoritaire et représente environ 1/3 des discou
 
 Ce test s'est également réalisé sur **3 époques**.
 
-Paramètres modifiés par rapport à l'essai précédent : cette fois-ci on force le modèle à se baser sur le score de F1 pour déterminer la meilleure version du modèle. 
+Paramètres modifiés par rapport à l'essai précédent : cette fois-ci on force le modèle à se baser sur le score de F1 pour déterminer la meilleure version du modèle. De plus, le nombre de classe a été réduit en ajoutant une catégorie AUTRE pour rassembler les plus petites classes.
 
 La **précision** obtenue est de **53,67%**, ce qui est équivalent au résultat du premier test. En revanche le **F1** monte à **43,52%** ce qui montre que le modèle est bien plus performant sur les plus petites classes.
 
