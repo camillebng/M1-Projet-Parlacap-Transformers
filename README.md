@@ -156,6 +156,7 @@ Avec ces statistiques sur le dataset brut, on peut voir qu'il était nécessaire
 
 **Statistiques après nettoyage**
 
+Ces statistiques ont été calculées avec le script clean_data.py. 
 |Métrique|Stats|
 |:---:|:---:|
 |Nb total de discours|262,257|
