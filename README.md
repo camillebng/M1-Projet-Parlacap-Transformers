@@ -1,34 +1,39 @@
 # Projet Python - ParlaCAP
 
 ## Description
-L'objectif de ce projet est d'entraîner un modèle transformers sur des échanges parlementaires en français afin de les associer à des partis politiques.
+
+L'objectif de ce projet est d'entraîner un modèle Transformers sur des échanges parlementaires en français afin de les associer à des partis politiques.
 
 ## Installation
 
 ### Dépendances
 
 Bibliothèques utilisées :
-- **transformers** : fournit les outils pour la tokénisation, la classification et l'entrainement du modèle
-- **datasets** : charge les données
-- **evaluate** : évalue quantitativement le modèle
-- **accelerate** : optimise le calcul
-- **numpy** : fournit des fonctions mathématiques
+
+- **transformers** : fournit les outils pour la tokénisation, la classification et l'entraînement du modèle.
+- **datasets** : charge les données.
+- **evaluate** : évalue quantitativement le modèle.
+- **accelerate** : optimise le calcul.
+- **numpy** : fournit des fonctions mathématiques.
+- **scikit-learn** : permet de produire un rapport détaillé par classe.
+- **torch** : permet l'entraînement du modèle avec PyTorch.
+- **sentencepiece** et **protobuf** : nécessaires au chargement de certains modèles/tokeniseurs.
 
 ### Notes d'installation
 
-Pour installer les dépendances lancez la commande suivante :
+Pour installer les dépendances, lancez la commande suivante :
 
 ```bash
-pip install transformers datasets evaluate accelerate
+pip install transformers datasets evaluate accelerate numpy scikit-learn torch sentencepiece protobuf
 ```
 
 ## API
 
-|Fonction|Entrée(s)|Sortie(s)|Description|
+| Fonction | Entrée(s) | Sortie(s) | Description |
 |---|---|---|---|
-|compute_metrics|eval_pred(logits,labels)|dict(acc,f1)|Renvoie la précision et la F-mesure|
-|preprocess_function|examples(texte brut)|dict(tokens)|Tokénise le texte et associe un tenseur à chaque token|
-|group_small_parties|example(row)|example(modifié)|Regroupe les partis d'une fréquence inférience à 2%|
+| `compute_metrics` | `eval_pred(logits, labels)` | `dict(accuracy, f1_macro)` | Renvoie la précision et la F-mesure macro |
+| `preprocess_function` | `examples` contenant le texte brut | `dict(tokens)` | Tokénise le texte et convertit les séquences en identifiants numériques |
+| `group_small_parties` | `example(row)` | `example(modifié)` | Regroupe les partis dont la fréquence est inférieure au seuil choisi, par exemple 5 % |
 
 ## Tests
 
@@ -36,180 +41,217 @@ Les tests ont été effectués sur les serveurs de l'UGA.
 
 ### Premier test
 
-Le premier test a été effectué avec **3 époques** et en rassemblant les classes de fréquence <2%. On remarque qu'à la fin de l'apprentissage, il y a un écart entre la perte d'entrainement et la perte d'évaluation ce qui peut être le signe d'un surapprentissage.
+Le premier test a été effectué avec le modèle **cmarkea/distilcamembert-base**, une version allégée de CamemBERT. Le modèle a été entraîné sur **3 époques**. Dans cette première version, le seuil de regroupement des petits partis était fixé à **2 %**.
 
-La **précision** est de **54,06%** ce qui voudrait dire que la classe est correctement attribuée environ une fois sur deux. Cependant le **F1** de **29%**, qui fait la moyenne des performances pour chaque classe, montre qu'en réalité les classes sont moins bien reconnues qu'une fois sur deux.
+Résultats obtenus :
 
-Etant donné qu'une classe est majoritaire et représente environ 1/3 des discours, le modèle n'est probablement performant que pour cette classe.
+- **précision = 54,06 %**
+- **F1 macro = 29,16 %**
+- **perte d'évaluation = 1,426**
+
+La précision indique que le modèle attribue correctement la classe dans un peu plus d'un cas sur deux. Cependant, le F1 macro est faible. Cela montre que les performances ne sont pas équilibrées entre les classes : le modèle semble surtout mieux reconnaître les classes majoritaires, tandis que les classes minoritaires sont beaucoup moins bien prédites.
+
+Ce résultat ne semble pas principalement dû à un surapprentissage, car l'écart entre la perte d'entraînement et la perte d'évaluation reste limité. Le problème principal est plutôt le déséquilibre des classes.
 
 ### Second test
 
-Ce test s'est également réalisé sur **3 époques**.
+Ce test s'est également réalisé sur **3 époques** avec **cmarkea/distilcamembert-base**.
 
-Paramètres modifiés par rapport à l'essai précédent : cette fois-ci on force le modèle à se baser sur le score de F1 pour déterminer la meilleure version du modèle. De plus, le regroupement des classes a été renforcé en prenant toutes les classes de fréquence <5% dans une catégorie AUTRE.
+Paramètres modifiés par rapport à l'essai précédent :
 
-La **précision** obtenue est de **53,67%**, ce qui est équivalent au résultat du premier test. En revanche le **F1** monte à **43,52%** ce qui montre que le modèle est bien plus performant sur les plus petites classes.
+- le seuil de regroupement des petits partis est passé de **2 % à 5 %** ;
+- les petits partis ont été regroupés dans une catégorie **AUTRE** ;
+- le découpage train/test a été fait de manière stratifiée, afin de conserver la proportion des classes ;
+- le modèle sélectionne la meilleure version selon le **F1 macro** ;
+- la longueur maximale des séquences a été fixée à **256 tokens**.
 
-L'écart entre la perte d'apprentissage et la perte d'évaluation est également très faible, ce qui montre que cette fois le modèle n'a pas fait trop de surapprentissage.
+Résultats obtenus :
+
+- **précision = 53,67 %**
+- **F1 macro = 43,52 %**
+- **perte d'évaluation = 1,262**
+
+La précision reste proche de celle du premier test. En revanche, le F1 macro augmente nettement. Cela montre que le modèle est devenu plus performant sur les classes moins représentées, même si la précision globale n'a pas beaucoup changé.
 
 ### Troisième test
 
--> **3 époques**
+Le troisième test a été effectué avec **camembert-base**, un modèle plus lourd et plus performant que DistilCamemBERT. La longueur maximale des séquences a aussi été augmentée à **512 tokens**, afin de donner plus de contexte au modèle.
 
-Aucun paramètre n'a été modifié par rapport au deuxième test.
+Le modèle a été entraîné sur **3 époques**.
 
-**précision = 56,41%**
+Résultats obtenus :
 
-**F1 = 47%**
+- **précision = 56,41 %**
+- **F1 macro = 47,25 %**
+- **perte d'évaluation = 1,236**
 
-=> Ces résultats montrent que le modèle arrive mieux à reconnaître les plus petites classes.
+Cette version améliore à la fois la précision et le F1 macro. Le modèle semble donc mieux exploiter les indices linguistiques et thématiques présents dans les discours.
 
-Un rapport détaillé (voir rapport_v3.txt) montre cependant que les résultats restent très inégaux en fonction des classes. Sans surprise, les classes les plus représentées sont très bien reconnues, mais MODEM et SOC obtiennent des scores très mauvais notamment au niveau du rappel, ce qui montre que le modèle ne reconnait que difficilement les discours appartenant à ces partis.
+Un rapport détaillé par classe a été généré dans `rapport_v3.txt`. Il montre cependant que les résultats restent très inégaux selon les classes. Les classes les mieux reconnues sont notamment **LAREM**, **FI** et **LR**. En revanche, **MODEM** et **SOC** obtiennent des scores plus faibles, notamment au niveau du rappel, ce qui montre que le modèle reconnaît difficilement les discours appartenant à ces partis.
 
-En dehors du déséquilibre de notre corpus, cette différence pourrait s'expliquer par des proximités entre ces partis qui les rendrais difficile à différencier. Il est aussi possible qu'un certain nombre de discours soient trop "neutres" et ne contiennent donc pas d'indices explicites qui permettraient au modèle de les labéliser correctement.
-
+En dehors du déséquilibre du corpus, cette différence pourrait s'expliquer par des proximités thématiques entre certains partis, qui les rendent difficiles à différencier. Il est aussi possible qu'un certain nombre de discours soient trop neutres et ne contiennent donc pas d'indices explicites permettant au modèle de les labéliser correctement.
 
 ### Quatrième test
 
--> **3 époques**
+Le quatrième test reprend la configuration du troisième test, mais ajoute une **pondération personnalisée des classes**.
 
-Paramètres modifiés : pour ce test on calcule des poids pour compenser la faible fréquence de certaines classes, afin de forcer le modèle à porter plus d'attention aux petits partis. 
+L'objectif était de compenser la faible fréquence de certaines classes, afin de forcer le modèle à porter plus d'attention aux petits partis, comme MODEM, SOC ou GDR.
 
-De plus, on passe au modèle camembert-base qui est plus performant que distilcamembert. 
+Le modèle a été entraîné sur **3 époques**.
 
-**précision = 51%**
+Résultats obtenus :
 
-**F1 = 47%**
+- **précision = 51,14 %**
+- **F1 macro = 47,35 %**
+- **perte d'évaluation = 1,413**
 
-Le changement de paramètres a fait légèrement baisser la précision puisque le modèle prend plus de risques sur les petits classes. En revanche, la perte d'évaluation (1,413) est plus haute que la perte d'entraînement (1,266) ce qui peut montrer qu'avec ces modifications de poids, le modèle a du mal à généraliser. 
+La pondération des classes n'a pas réellement amélioré les performances globales. Le F1 macro reste presque stable, mais la précision diminue. Cela suggère que le modèle prend davantage de risques sur les petites classes, mais au détriment des prédictions globales.
+
+Cette expérimentation n'a donc pas été retenue comme meilleure configuration.
 
 ### Cinquième test
 
--> **4 époques**
+Le cinquième test reprend la meilleure configuration précédente, c'est-à-dire **camembert-base** avec une longueur maximale de **512 tokens**, mais le nombre d'époques a été augmenté de **3 à 4**.
 
-Paramètres modifiés : sur cet essai, la pondération personnalisée des classes a été enlevée.
+La pondération personnalisée des classes n'a pas été conservée.
 
-**précision = 56%**
+Résultats obtenus :
 
-**F1 = 48%**
+- **précision = 56,69 %**
+- **F1 macro = 48,29 %**
+- **perte d'évaluation = 1,333**
 
-C'est avec cet essai que nous avons obtenu les meilleurs scores. L'entraînement avec 1 époque en plus ainsi que l'utilisation d'un modèle un peu plus performant a eu un impact positif sur nos résultats. De plus, les valeurs de perte d'apprentissage et d'évaluation montrent que le modèle parvient à mieux généraliser.
+C'est avec cet essai que nous avons obtenu les meilleurs scores globaux. L'amélioration reste légère, mais le F1 macro augmente par rapport au troisième test. Nous retenons donc ce cinquième test comme le meilleur compromis entre précision et F1 macro.
+
+### Tableau récapitulatif des tests
+
+| Test | Dossier | Modèle | Époques | Précision | F1 macro | Perte d'évaluation |
+|---|---|---|---:|---:|---:|---:|
+| Test 1 | `output` | DistilCamemBERT | 3 | 0.5406 | 0.2916 | 1.4264 |
+| Test 2 | `output_v2` | DistilCamemBERT | 3 | 0.5368 | 0.4352 | 1.2625 |
+| Test 3 | `output_v3` | CamemBERT-base | 3 | 0.5641 | 0.4725 | 1.2364 |
+| Test 4 | `output_v4` | CamemBERT-base + pondération | 3 | 0.5114 | 0.4735 | 1.4133 |
+| Test 5 | `output_v5` | CamemBERT-base | 4 | 0.5669 | 0.4829 | 1.3327 |
 
 ### Conclusion
-Tous ces tests nous ont permis d'affiner les paramètres du modèle cependant, étant donné le fort déséquilibre des classes sur notre corpus, il faudrait faire un travail de nettoyage des données encore plus important pour réellement arriver à des résultats satisfaisants. 
+
+Tous ces tests nous ont permis d'affiner les paramètres du modèle. Les améliorations les plus efficaces ont été le passage de **DistilCamemBERT** à **CamemBERT-base**, l'augmentation de la longueur maximale des séquences à **512 tokens**, le regroupement des petits partis dans une catégorie **AUTRE**, et l'utilisation d'un découpage stratifié.
+
+La meilleure configuration obtenue est celle du cinquième test, avec **camembert-base**, `max_length=512` et **4 époques**. Elle atteint environ **56,69 % de précision** et **48,29 % de F1 macro**.
+
+Cependant, les performances restent limitées. Cela s'explique principalement par le fort déséquilibre des classes, l'hétérogénéité de la catégorie **AUTRE**, et la proximité thématique entre certains partis politiques. Pour améliorer davantage le modèle, il faudrait probablement travailler plus finement sur le nettoyage des données, la constitution des classes et éventuellement tester d'autres stratégies d'échantillonnage.
 
 ## Bugs identifiés
 
-Lors du troisième test, le script a planté en raison d'un problème d'encodage d'un caractère. Le problème a cependant été résolu.
+Lors de la génération du rapport détaillé, un script a d'abord planté à cause d'un problème d'encodage de caractères non ASCII. Le problème a été résolu en exécutant le script avec `python3` dans l'environnement virtuel du projet.
 
-## Structures des données
+## Structure des données
 
 ### Dataset avant et après tokénisation
 
 **Données brutes avant tokénisation**
 
-Notre dataset (https://data.crossda.hr/file.xhtml?persistentId=doi:10.23669/1ZTELP/TRB27P&version=1.0) contient des discours parlementaires enregistrés en France entre 2015 et 2022.
+Notre dataset contient des discours parlementaires enregistrés en France entre 2015 et 2022.
 
-Le dataset est au format .tsv contient des colonnes de métadonnées (chaque discours a un identifiant, une date etc). Pour l'entraînement du modèle nous n'avons retenu que la colonne 'speaker_party' contenant les différents partis politiques (labels) ainsi que la colonne contenant le texte des discours (input fourni au modèle).
+Lien vers le dataset :  
+https://data.crossda.hr/file.xhtml?persistentId=doi:10.23669/1ZTELP/TRB27P&version=1.0
+
+Le dataset est au format `.tsv` et contient des colonnes de métadonnées : identifiant du discours, date, langue, nom du locuteur, parti politique, texte, etc. Pour l'entraînement du modèle, nous avons retenu principalement la colonne `speaker_party`, qui correspond au parti politique du locuteur, et la colonne `text`, qui contient le texte du discours.
+
 Après analyse du jeu de données par un script Python, on obtient les statistiques suivantes.
 
 **Statistiques avant nettoyage**
 
-
-|Métrique|Données brutes|
+| Métrique | Données brutes |
 |:---:|:---:|
-|Nb total de discours|714,439|
-|Longueur médiane discours|13 mots|
-
+| Nb total de discours | 714,439 |
+| Longueur médiane discours | 13 mots |
 
 Pour la répartition des classes :
 
-|Parti|Proportion [%]|
+| Parti | Proportion [%] |
 |:---:|:---:|
-|LAREM|29.11|
-|LR|23.30|
-|-|15.15|
-|FI|5.96|
-|SOC|5.55|
-|MODEM|5.19|
-|GDR|4.52|
-|DEM|2.90|
-|UDI-AGIR|2.85|
-|LT|1.98|
-|NG|1.28|
-|UDI-I|0.69|
-|AGIR-E|0.44|
-|UDI-A-I|0.31|
-|LC|0.31|
-|UDI-I|0.30|
-|EDS|0.13|
-|RE|0.00|
+| LAREM | 29.11 |
+| LR | 23.30 |
+| - | 15.15 |
+| FI | 5.96 |
+| SOC | 5.55 |
+| MODEM | 5.19 |
+| GDR | 4.52 |
+| DEM | 2.90 |
+| UDI-AGIR | 2.85 |
+| LT | 1.98 |
+| NG | 1.28 |
+| UDI-I | 0.69 |
+| AGIR-E | 0.44 |
+| UDI-A-I | 0.31 |
+| LC | 0.31 |
+| UDI-I | 0.30 |
+| EDS | 0.13 |
+| RE | 0.00 |
 
 => 18 classes au total
 
 Avec ces statistiques sur le dataset brut, on peut voir qu'il était nécessaire de faire un nettoyage :
-- pour éliminer les prises de parole trop courtes
-- pour éliminer les discours sans parti politique associé
-- pour pallier au fort déséquilibre des classes
 
-=> Tous les discours d'une longueur inférieure à 15 mots ont été filtrés, et les partis politiques de proportion inférieure à 2% ont été regroupés dans une catégorie AUTRE.
+- pour éliminer les prises de parole trop courtes ;
+- pour éliminer les discours sans parti politique associé ;
+- pour réduire le fort déséquilibre des classes.
+
+Tous les discours d'une longueur inférieure à 15 mots ont été filtrés. Les discours sans parti politique associé ont aussi été supprimés. Dans les dernières expériences, les partis politiques dont la proportion était inférieure à **5 %** ont été regroupés dans une catégorie **AUTRE**.
 
 **Statistiques après nettoyage**
 
-Ces statistiques ont été calculées avec le script clean_data.py. 
-|Métrique|Stats|
+Ces statistiques ont été calculées avec le script `clean_data.py`.
+
+| Métrique | Stats |
 |:---:|:---:|
-|Nb total de discours|262,257|
-|% de données conservées|36.7%|
-|Longueur médiane discours|72 mots|
+| Nb total de discours | 262,257 |
+| % de données conservées | 36.7 % |
+| Longueur médiane discours | 72 mots |
 
-
-
-|Parti|Proportion [%]|
+| Parti | Proportion [%] |
 |:---:|:---:|
-|LAREM|32.49|
-|LR|23.37|
-|AUTRE|16.08|
-|FI|9.63|
-|SOC|6.85|
-|GDR|6.13|
-|MODEM|5.45|
+| LAREM | 32.49 |
+| LR | 23.37 |
+| AUTRE | 16.08 |
+| FI | 9.63 |
+| SOC | 6.85 |
+| GDR | 6.13 |
+| MODEM | 5.45 |
 
 => 7 classes après nettoyage
 
-Il faut aussi tenir compte du fait que le modèle ne regarde entièrement que les textes d'une longueur inférieure à 512 tokens.
-Après calcul, seules **5.01%** de nos données nettoyées étaient tronquées par cette limite, ce qui semble acceptable.
+Il faut aussi tenir compte du fait que le modèle ne regarde entièrement que les textes d'une longueur inférieure à **512 tokens**. Après calcul, seules **5.01 %** de nos données nettoyées étaient tronquées par cette limite, ce qui semble acceptable.
 
-Le dataset nettoyé a ensuite été divisé de manière aléatoire avec 80% des données réservées pour l'entraînement et les 20% restant pour le test.
+Le dataset nettoyé a ensuite été divisé avec **80 % des données pour l'entraînement** et **20 % pour le test**. Le découpage a été effectué de manière stratifiée, afin de conserver la proportion des classes dans les deux ensembles.
 
 **Après tokénisation**
 
-L'algorithme de tokénisation utilisé est celui qui est associé au modèle DistilCamemBERT, une version plus légère du modèle CamemBERT pour le français. Son vocabulaire contient 32 005 tokens.
+L'algorithme de tokénisation utilisé dépend du modèle choisi. Les premiers essais utilisent DistilCamemBERT, une version plus légère du modèle CamemBERT pour le français. Les derniers essais utilisent CamemBERT-base, afin d'obtenir de meilleurs résultats.
 
-Pour les derniers essais, nous avons aussi testé le modèle CamemBERT pour essayer d'obtenir de meilleurs résultats.
+En sortie du tokéniseur, on obtient une liste de tokens convertis en identifiants numériques. Cette liste est ensuite passée dans une fonction de préparation des données, qui applique un padding pour que toutes les séquences d'un batch aient une longueur compatible. Un `attention_mask` est aussi ajouté afin d'indiquer au modèle les éléments de padding à ignorer.
 
-En sortie du tokéniseur, on obtient une liste de tokens convertis en ID numériques (int). Cette liste est ensuite passée dans une fonction de préparation des données, qui applique un padding pour que toutes les séquences aient la même longueur. Un attention_mask est donc ajouté afin d'indiquer au modèle les éléments de padding à ignorer.
-Enfin les labels sont associés aux séquences pour permettre au modèle d'apprendre à prédire.
-
+Enfin, les labels sont associés aux séquences pour permettre au modèle d'apprendre à prédire le parti politique du locuteur.
 
 ### Sorties du modèle
 
-Les résultats bruts du modèle sortent sous forme de logits (float), organisés en tenseur. Ces nombres donnent pour chaque classe la force de prédiction : plus la valeur est élevée, plus il est probable que l'input appartienne à cette classe.
+Les résultats bruts du modèle sortent sous forme de logits, organisés en tenseur. Ces nombres donnent pour chaque classe la force de prédiction : plus la valeur est élevée, plus il est probable que l'input appartienne à cette classe.
 
-Le tenseur de sortie a pour taille [8,7] : 8 batchs (8 lignes) et 7 classes (7 colonnes). Une ligne contient les scores d'un batch pour chaque classe.
+Dans notre cas, le tenseur de sortie a pour taille `[8, 7]` lorsque le batch size est de 8 : 8 exemples dans le batch et 7 classes possibles. Une ligne contient donc les scores d'un exemple pour chaque classe.
 
-La fonction d'activation va ensuite traduire les logits pour les rendre interprétables, en les transformant en probabilités.
+Pour obtenir la prédiction finale, on sélectionne la classe qui possède le score le plus élevé. Les métriques sont ensuite calculées à partir de ces prédictions et des labels attendus.
 
 ### Fonctions
 
 Les fonctions utilisées servent à transformer les données pour les rendre utilisables par le modèle :
-- group_small_parties réduit le nombre de classes afin de rendre la distribution plus équilibrée
-- preprocess_function convertit l'input, sous forme de chaînes de caractères, en matrice d'entiers, format compréhensible pour la machine
-- compute_metrics traite la sortie du modèle pour donner des probabilités interprétables, en transformant les 7 scores (pour chaque classe) en un seul entier correspondant à la classe prédite. A partir de cette donnée, les métriques de performance sont calculées.
 
-### Evaluation de la complexité
+- `group_small_parties` réduit le nombre de classes afin de rendre la distribution plus équilibrée ;
+- `preprocess_function` convertit l'input, sous forme de chaînes de caractères, en identifiants numériques compréhensibles par le modèle ;
+- `compute_metrics` traite la sortie du modèle pour obtenir les métriques de performance, notamment la précision et le F1 macro.
 
-Le modèle compare chaque mot d'une séquence avec tous les autres mots de la même séquence. La même opération est répétée pour toutes les autres séquences. En rappelant que le modèle a analysé environ 260,000 discours d'une longueur médiane de 72 mots on peut donc estimer la complexité à O(n²*N) avec n la longueur de la séquence .
+### Évaluation de la complexité
 
+Le modèle repose sur une architecture de type Transformer. Dans ce type de modèle, le mécanisme d'attention compare les tokens d'une séquence entre eux. Pour une séquence de longueur `n`, cette opération a une complexité approximative de `O(n²)`.
 
-
+Comme cette opération est répétée pour un grand nombre de discours, on peut estimer la complexité globale à `O(N × n²)`, avec `N` le nombre de discours et `n` la longueur maximale des séquences.
