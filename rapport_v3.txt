@@ -1,0 +1,13 @@
+              precision    recall  f1-score   support
+
+       AUTRE       0.47      0.40      0.44      8433
+          FI       0.72      0.52      0.60      5053
+         GDR       0.50      0.48      0.49      3215
+       LAREM       0.61      0.80      0.69     17039
+          LR       0.52      0.58      0.55     12259
+       MODEM       0.55      0.14      0.22      2858
+         SOC       0.44      0.24      0.31      3595
+
+    accuracy                           0.56     52452
+   macro avg       0.54      0.45      0.47     52452
+weighted avg       0.56      0.56      0.55     52452
