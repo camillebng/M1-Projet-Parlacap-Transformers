@@ -30,11 +30,11 @@ pip install transformers datasets evaluate accelerate
 |preprocess_function|examples(texte brut)|dict(tokens)|Tokénise le texte et associe un tenseur à chaque token|
 |group_small_parties|example(row)|example(modifié)|Regroupe les partis d'une fréquence inférience à 2%|
 
-##Tests
+## Tests
 
 Les tests ont été effectués sur les serveurs de l'UGA.
 
-###Premier test
+### Premier test
 
 Le premier test a été effectué avec **3 époques**. On remarque qu'à la fin de l'apprentissage, il y a un écart entre la perte d'entrainement et la perte d'évaluation ce qui peut être le signe d'un surapprentissage.
 
@@ -42,7 +42,7 @@ La **précision** est de **54,06%** ce qui voudrait dire que la classe est corre
 
 Etant donné qu'une classe est majoritaire et représente environ 1/3 des discours, le modèle n'est probablement performant que pour cette classe.
 
-###Second test
+### Second test
 
 Ce test s'est également réalisé sur **3 époques**.
 
@@ -52,7 +52,7 @@ La **précision** obtenue est de **53,67%**, ce qui est équivalent au résultat
 
 L'écart entre la perte d'apprentissage et la perte d'évaluation est également très faible, ce qui montre que cette fois le modèle n'a pas fait trop de surapprentissage.
 
-###Troisième test
+### Troisième test
 
 -> **3 époques**
 
@@ -69,7 +69,7 @@ Un rapport détaillé (voir rapport_v3.txt) montre cependant que les résultats 
 En dehors du déséquilibre de notre corpus, cette différence pourrait s'expliquer par des proximités entre ces partis qui les rendrais difficile à différencier. Il est aussi possible qu'un certain nombre de discours soient trop "neutres" et ne contiennent donc pas d'indices explicites qui permettraient au modèle de les labéliser correctement.
 
 
-###Quatrième test
+### Quatrième test
 
 -> **3 époques**
 
@@ -83,7 +83,7 @@ De plus, on passe au modèle camembert-base qui est plus performant que distilca
 
 Le changement de paramètres a fait légèrement baisser la précision puisque le modèle prend plus de risques sur les petits classes. En revanche, la perte d'évaluation (1,413) est plus haute que la perte d'entraînement (1,266) ce qui peut montrer qu'avec ces modifications de poids, le modèle a du mal à généraliser. 
 
-###Cinquième test
+### Cinquième test
 
 -> **4 époques**
 
@@ -95,16 +95,16 @@ Paramètres modifiés : sur cet essai, la pondération personnalisée des classe
 
 C'est avec cet essai que nous avons obtenu les meilleurs scores. L'entraînement avec 1 époque en plus ainsi que l'utilisation d'un modèle un peu plus performant a eu un impact positif sur nos résultats. De plus, les valeurs de perte d'apprentissage et d'évaluation montrent que le modèle parvient à mieux généraliser.
 
-###Conclusion
+### Conclusion
 Tous ces tests nous ont permis d'affiner les paramètres du modèle cependant, étant donné le fort déséquilibre des classes sur notre corpus, il faudrait faire un travail de nettoyage des données encore plus important pour réellement arriver à des résultats satisfaisants. 
 
-##Bugs identifiés
+## Bugs identifiés
 
 Lors du troisième test, le script a planté en raison d'un problème d'encodage d'un caractère. Le problème a cependant été résolu.
 
-##Structures des données
+## Structures des données
 
-###Dataset avant et après tokénisation
+### Dataset avant et après tokénisation
 
 **Données brutes avant tokénisation**
 
@@ -191,7 +191,7 @@ En sortie du tokéniseur, on obtient une liste de tokens convertis en ID numéri
 Enfin les labels sont associés aux séquences pour permettre au modèle d'apprendre à prédire.
 
 
-###Sorties du modèle
+### Sorties du modèle
 
 Les résultats bruts du modèle sortent sous forme de logits (float), organisés en tenseur. Ces nombres donnent pour chaque classe la force de prédiction : plus la valeur est élevée, plus il est probable que l'input appartienne à cette classe.
 
@@ -199,14 +199,14 @@ Le tenseur de sortie a pour taille [8,7] : 8 batchs (8 lignes) et 7 classes (7 c
 
 La fonction d'activation va ensuite traduire les logits pour les rendre interprétables, en les transformant en probabilités.
 
-###Fonctions
+### Fonctions
 
 Les fonctions utilisées servent à transformer les données pour les rendre utilisables par le modèle :
 - group_small_parties réduit le nombre de classes afin de rendre la distribution plus équilibrée
 - preprocess_function convertit l'input, sous forme de chaînes de caractères, en matrice d'entiers, format compréhensible pour la machine
 - compute_metrics traite la sortie du modèle pour donner des probabilités interprétables, en transformant les 7 scores (pour chaque classe) en un seul entier correspondant à la classe prédite. A partir de cette donnée, les métriques de performance sont calculées.
 
-###Evaluation de la complexité
+### Evaluation de la complexité
 
 Le modèle compare chaque mot d'une séquence avec tous les autres mots de la même séquence. La même opération est répétée pour toutes les autres séquences. En rappelant que le modèle a analysé environ 260,000 discours d'une longueur médiane de 72 mots on peut donc estimer la complexité à O(n²*N) avec n la longueur de la séquence .
 
